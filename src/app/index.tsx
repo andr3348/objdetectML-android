@@ -3,6 +3,7 @@ import { NoDeviceScreen } from "@/components/camera/NoDeviceScreen";
 import { PermissionScreen } from "@/components/camera/PermissionScreen";
 import { BottomHint } from "@/components/ui/BottomHint";
 import { TopBar } from "@/components/ui/TopBar";
+import { useObjectDetection } from "@/hooks/useObjectDetection";
 import { useState } from "react";
 import { StatusBar, StyleSheet, View } from "react-native";
 import {
@@ -16,6 +17,7 @@ export default function Index() {
   const { hasPermission, requestPermission } = useCameraPermission();
   const [facing, setFacing] = useState<CameraFacing>("back");
   const device = useCameraDevice(facing);
+  const { frameOutput } = useObjectDetection();
 
   if (!hasPermission) {
     return <PermissionScreen onRequest={requestPermission} />;
@@ -32,7 +34,7 @@ export default function Index() {
         backgroundColor="transparent"
         barStyle="light-content"
       />
-      <CameraView device={device} />
+      <CameraView device={device} frameOutput={frameOutput} />
       <TopBar
         onFlip={() => setFacing((f) => (f === "back" ? "front" : "back"))}
       />
