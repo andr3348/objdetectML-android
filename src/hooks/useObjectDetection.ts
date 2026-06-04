@@ -1,100 +1,36 @@
-import { Detection } from "@/types/Detection";
+import type { Detection } from "@/types/Detection";
 import { useCallback, useState } from "react";
 import { useTensorflowModel } from "react-native-fast-tflite";
 import type { Frame } from "react-native-vision-camera";
 import { useFrameOutput } from "react-native-vision-camera";
 import { runOnJS } from "react-native-worklets";
 
+// Sequential COCO labels (0-based, matches TFLite model output).
+// Gaps in COCO IDs are filled with placeholders.
 const COCO_LABELS = [
-  "person",
-  "bicycle",
-  "car",
-  "motorcycle",
-  "airplane",
-  "bus",
-  "train",
-  "truck",
-  "boat",
-  "traffic light",
-  "fire hydrant",
-  "stop sign",
-  "parking meter",
-  "bench",
-  "bird",
-  "cat",
-  "dog",
-  "horse",
-  "sheep",
-  "cow",
-  "elephant",
-  "bear",
-  "zebra",
-  "giraffe",
-  "backpack",
-  "umbrella",
-  "handbag",
-  "tie",
-  "suitcase",
-  "frisbee",
-  "skis",
-  "snowboard",
-  "sports ball",
-  "kite",
-  "baseball bat",
-  "baseball glove",
-  "skateboard",
-  "surfboard",
-  "tennis racket",
-  "bottle",
-  "wine glass",
-  "cup",
-  "fork",
-  "knife",
-  "spoon",
-  "bowl",
-  "banana",
-  "apple",
-  "sandwich",
-  "orange",
-  "broccoli",
-  "carrot",
-  "hot dog",
-  "pizza",
-  "donut",
-  "cake",
-  "chair",
-  "couch",
-  "potted plant",
-  "bed",
-  "dining table",
-  "toilet",
-  "tv",
-  "laptop",
-  "mouse",
-  "remote",
-  "keyboard",
-  "cell phone",
-  "microwave",
-  "oven",
-  "toaster",
-  "sink",
-  "refrigerator",
-  "book",
-  "clock",
-  "vase",
-  "scissors",
-  "teddy bear",
-  "hair drier",
-  "toothbrush",
+  "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train",
+  "truck", "boat", "traffic light", "fire hydrant", null, "stop sign",
+  "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
+  "elephant", "bear", "zebra", "giraffe", null, "backpack", "umbrella",
+  null, null, "handbag", "tie", "suitcase", "frisbee", "skis",
+  "snowboard", "sports ball", "kite", "baseball bat", "baseball glove",
+  "skateboard", "surfboard", "tennis racket", "bottle", null, "wine glass",
+  "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich",
+  "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake",
+  "chair", "couch", "potted plant", "bed", null, "dining table",
+  null, null, "toilet", null, "tv", "laptop", "mouse", "remote",
+  "keyboard", "cell phone", "microwave", "oven", "toaster", "sink",
+  "refrigerator", null, "book", "clock", "vase", "scissors",
+  "teddy bear", "hair drier", "toothbrush",
 ];
 
-const CONFIDENCE_THRESHOLD = 0.45;
-const MODEL_INPUT_SIZE = 300;
+const CONFIDENCE_THRESHOLD = 0.4;
+const MODEL_INPUT_SIZE = 320;
 
 export function useObjectDetection() {
   const [detections, setDetections] = useState<Detection[]>([]);
 
-  const tfModel = useTensorflowModel(require("../../assets/detect.tflite"), []); // Ensure the model is only loaded once. Uses CPU
+  const tfModel = useTensorflowModel(require("../../assets/detect.tflite"), []);
   const model = tfModel.state === "loaded" ? tfModel.model : undefined;
 
   const updateDetections = useCallback((raw: Detection[]) => {
@@ -110,6 +46,7 @@ export function useObjectDetection() {
     dropFramesWhileBusy: true,
     onFrame(frame: Frame) {
       "worklet";
+
       if (model == null) {
         frame.dispose();
         return;
@@ -138,30 +75,29 @@ export function useObjectDetection() {
         }
       }
 
-      const input = dstArr.buffer as ArrayBuffer;
-      const outputs = model.runSync([input]);
+      const outputs = model.runSync([dstArr.buffer as ArrayBuffer]);
 
-      const boxes = outputs[0] as unknown as number[];
-      const classes = outputs[1] as unknown as number[];
-      const scores = outputs[2] as unknown as number[];
-      const count = Math.round((outputs[3] as unknown as number[])[0]);
+      const boxesData = new Float32Array(outputs[0]);
+      const classesData = new Float32Array(outputs[1]);
+      const scoresData = new Float32Array(outputs[2]);
+      const count = Math.round(new Float32Array(outputs[3])[0]);
 
       const result: Detection[] = [];
 
       for (let i = 0; i < count; i++) {
-        const confidence = scores[i];
+        const confidence = scoresData[i];
         if (confidence < CONFIDENCE_THRESHOLD) continue;
 
-        const classIdx = Math.round(classes[i]);
-        const label = COCO_LABELS[classIdx - 1] ?? "unknown";
+        const classIdx = Math.round(classesData[i]);
+        const label = COCO_LABELS[classIdx] ?? "unknown";
 
         result.push({
           label,
           confidence,
-          yMin: boxes[i * 4 + 0],
-          xMin: boxes[i * 4 + 1],
-          yMax: boxes[i * 4 + 2],
-          xMax: boxes[i * 4 + 3],
+          yMin: boxesData[i * 4 + 0],
+          xMin: boxesData[i * 4 + 1],
+          yMax: boxesData[i * 4 + 2],
+          xMax: boxesData[i * 4 + 3],
         });
       }
 
