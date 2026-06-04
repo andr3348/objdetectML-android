@@ -1,56 +1,95 @@
-# Welcome to your Expo app 👋
+# ObjDetectML Android
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Real-time object detection on Android using a quantized SSD MobileNet V3 model running on-device via TensorFlow Lite.
 
-## Get started
+## Stack
 
-1. Install dependencies
+| Layer | Tech |
+|---|---|
+| Framework | [Expo](https://expo.dev) SDK 56 |
+| Runtime | [React Native](https://reactnative.dev) 0.85 (Hermes) |
+| Camera | [react-native-vision-camera](https://github.com/mrousavy/react-native-vision-camera) v5 |
+| ML Engine | [react-native-fast-tflite](https://github.com/mrousavy/react-native-fast-tflite) v3 (Nitro modules) |
+| Model | SSD MobileNet V3 Small (COCO, 320×320 quantized) |
+| Worklets | react-native-worklets 0.8 + react-native-vision-camera-worklets |
+| Language | TypeScript |
+| Target | Android (ARM64) |
 
-   ```bash
-   npm install
-   ```
+## Prerequisites
 
-2. Start the app
+- **Node.js** 24 (tested with v24.15.0)
+- **Java** — JDK 17 (e.g. `tem` distribution via SDKMAN)
+- **Android Studio** with Android SDK 35+, NDK
+- **Expo CLI** (`npx expo`)
 
-   ```bash
-   npx expo start
-   ```
+## Setup
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+### 1. Java (SDKMAN)
 
 ```bash
-npm run reset-project
+sdk install java 17.0.14-tem
+sdk use java 17.0.14-tem
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2. Android SDK
 
-### Other setup steps
+Set `ANDROID_HOME` in your shell rc file (e.g. `~/.zshrc`):
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```bash
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin
+```
 
-## Learn more
+### 3. Project
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+git clone <repo-url>
+cd objdetectML-android
+npm install
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 4. Run on device
 
-## Join the community
+```bash
+npx expo run:android
+```
 
-Join our community of developers creating universal apps.
+This builds the native project (Gradle) and installs the debug APK on a connected device. The app will request camera permission on first launch.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### 5. Model
+
+Place a `.tflite` model at `assets/detect.tflite`. The default expects SSD MobileNet V3 Small (320×320, COCO 80 classes). The model is loaded at runtime — no rebuild needed to swap it.
+
+## Development
+
+```bash
+npx expo start
+```
+
+Press `a` to launch on Android. Metro will bundle JS and push updates to the running app (fast refresh for most changes).
+
+### Regenerate native project
+
+```bash
+npx expo prebuild --clean
+```
+
+Required after adding/removing native dependencies or changing `app.json` plugins/permissions.
+
+## Production build
+
+```bash
+npx expo run:android --variant release
+```
+
+Or generate an AAB for Play Store:
+
+```bash
+cd android
+./gradlew bundleRelease
+```
+
+## Known limitations
+
+- On-device quantized models trade accuracy for speed — the V3 model is a reasonable middle ground for real-time inference
+- iOS is not supported (the ML pipeline uses Android-specific TFLite delegates)
