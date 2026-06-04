@@ -2,13 +2,22 @@ import { DARK_OVERLAY } from "@/constants/theme";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export function BottomHint() {
+type Props = {
+  detectionCount: number;
+};
+
+export function BottomHint({ detectionCount }: Props) {
   const insets = useSafeAreaInsets();
+
+  const text =
+    detectionCount > 0
+      ? `${detectionCount} object${detectionCount > 1 ? "s" : ""} detected`
+      : "Point at any object to detect it";
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom + 12 }]}>
       <View style={styles.pill}>
-        <Text style={styles.text}>Point at any object to detect it</Text>
+        <Text style={styles.text}>{text}</Text>
       </View>
     </View>
   );
