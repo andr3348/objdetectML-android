@@ -1,15 +1,20 @@
+import type { Detection } from "@/types/Detection";
 import { useRef } from "react";
-import { Animated, StyleSheet } from "react-native";
+import { Animated, StyleSheet, useWindowDimensions } from "react-native";
+import type { CameraFrameOutput } from "react-native-vision-camera";
 import { Camera, CameraDevice } from "react-native-vision-camera";
+import { BoundingBoxes } from "./BoundingBoxes";
 
 type Props = {
   device: CameraDevice;
+  frameOutput: CameraFrameOutput;
+  detections: Detection[];
 };
 
-export function CameraView({ device }: Props) {
+export function CameraView({ device, frameOutput, detections }: Props) {
   const opacity = useRef(new Animated.Value(0)).current;
+  const { width, height } = useWindowDimensions();
 
-  // Fade in the camera preview once it's ready to avoid a white flash on Android
   const onCameraReady = () => {
     Animated.timing(opacity, {
       toValue: 1,
@@ -24,7 +29,13 @@ export function CameraView({ device }: Props) {
         style={StyleSheet.absoluteFill}
         device={device}
         isActive={true}
+        outputs={[frameOutput]}
         onStarted={onCameraReady}
+      />
+      <BoundingBoxes
+        detections={detections}
+        frameWidth={width}
+        frameHeight={height}
       />
     </Animated.View>
   );

@@ -1,20 +1,23 @@
+import { PulsingDot } from "@/components/ui/PulsingDot";
 import { ACCENT, DARK_OVERLAY } from "@/constants/theme";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { PulsingDot } from "./PulsingDot";
 
 type Props = {
   onFlip: () => void;
+  isModelLoaded: boolean;
 };
 
-export function TopBar({ onFlip }: Props) {
+export function TopBar({ onFlip, isModelLoaded }: Props) {
   const insets = useSafeAreaInsets();
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
       <View style={styles.liveChip}>
         <PulsingDot />
-        <Text style={styles.liveText}>LIVE</Text>
+        <Text style={styles.liveText}>
+          {isModelLoaded ? "LIVE" : "LOADING"}
+        </Text>
       </View>
 
       <Text style={styles.title}>ObjDetect</Text>
